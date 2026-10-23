@@ -1,3 +1,6 @@
+# Local agent instructions
+AGENTS.md
+
 # Environment and local credentials
 .env
 .env.*

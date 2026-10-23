@@ -1,23 +1,23 @@
-# Разработка и работа с Git
+# Development and Git conventions
 
-[← Документация](README.md) · [Далее: решение проблем →](troubleshooting.md)
+[← Documentation](README.md) · [Next: Troubleshooting →](troubleshooting.md)
 
-## Команды
+## Commands
 
-Все команды выполняются из корня `frameflow/`.
+Run commands from the `frameflow/` root.
 
-| Команда | Действие |
+| Command | Action |
 | --- | --- |
-| `pnpm dev` | Только frontend в режиме разработки |
-| `pnpm dev:identity-service` | Identity с watch |
-| `pnpm dev:document-service` | Document с watch |
-| `pnpm dev:workspace-service` | Workspace с watch |
-| `pnpm build` | Сборка frontend и трёх NestJS-приложений |
-| `pnpm typecheck` | Проверка TypeScript frontend и NestJS |
-| `pnpm lint` | ESLint frontend |
-| `pnpm compose:check` | Статическая проверка base, dev и scaffold-конфигураций |
+| `pnpm dev` | Frontend development server only |
+| `pnpm dev:identity-service` | Identity with watch mode |
+| `pnpm dev:document-service` | Document with watch mode |
+| `pnpm dev:workspace-service` | Workspace with watch mode |
+| `pnpm build` | Build the frontend and all three NestJS applications |
+| `pnpm typecheck` | Check frontend and NestJS TypeScript |
+| `pnpm lint` | Run frontend ESLint |
+| `pnpm compose:check` | Validate base, development, and scaffold configurations |
 
-Для одного сервиса:
+For an individual service:
 
 ```sh
 pnpm --filter @frameflow/workspace-service build
@@ -25,41 +25,41 @@ pnpm --filter @frameflow/workspace-service typecheck
 pnpm --filter @frameflow/workspace-service start:prod
 ```
 
-`start:prod` требует предварительной сборки и запускает локальный `dist/main.js`. Остановка — `Ctrl+C`.
+`start:prod` requires a build and runs the local `dist/main.js`. Stop it with `Ctrl+C`.
 
-## Организация кода
+## Code organization
 
-Frontend находится в `apps/frontend/`, отдельные backend-приложения — в `services/*-service/`. Схема слоёв описана в [архитектуре](architecture.md) и [каталоге сервисов](../services/README.md).
+The frontend lives in `apps/frontend/`; backend applications live in `services/*-service/`. See [Architecture](architecture.md) and the [service directory](../services/README.md) for layer boundaries.
 
-Новый бизнес-модуль размещается в `src/modules/<name>/` своего сервиса и подключается в `AppModule`. Контроллеры находятся в `presentation`, сценарии — в `application`, правила и сущности — в `domain`, внешние адаптеры — в `infrastructure`. Пустые каталоги сохранены через `.gitkeep`.
+Add business modules under their service's `src/modules/<name>/` and import them in `AppModule`. Controllers belong in `presentation`, use cases in `application`, rules and entities in `domain`, and external adapters in `infrastructure`. `.gitkeep` preserves empty directories.
 
-`packages/contracts/proto/` предназначен для согласованных protobuf-контрактов.
+`packages/contracts/proto/` is reserved for agreed Protocol Buffer contracts.
 
-Для новых Node-зависимостей используйте pnpm и коммитьте изменение `pnpm-lock.yaml`. Например:
+Use pnpm for Node dependencies and commit changes to `pnpm-lock.yaml`. For example:
 
 ```sh
 pnpm --filter @frameflow/workspace-service add <package>
 ```
 
-`<package>` — имя выбранной зависимости, а не готовая команда для копирования без замены. Docker dev-режим монтирует только `src`; после изменения зависимостей или конфигурации образ нужно пересобрать.
+Replace `<package>` with the selected dependency name. Docker development mode mounts only `src`; rebuild images after changing dependencies or configuration.
 
-## Что хранить в Git
+## What belongs in Git
 
-Коммитятся исходники, документация, Dockerfiles, Compose, `.env.example`, `pnpm-lock.yaml`, конфигурация и `.gitkeep`. [`.gitignore`](../.gitignore) исключает локальные `.env`, ключи, зависимости, сборки, кеши, логи и результаты тестов.
+Commit source code, documentation, Dockerfiles, Compose files, `.env.example`, `pnpm-lock.yaml`, configuration, and `.gitkeep` files. [`.gitignore`](../.gitignore) excludes local environment files, keys, dependencies, builds, caches, logs, and test output.
 
-Данные приложения, локальные датасеты, модели, выгрузки и резервные копии в корневых `data/`, `datasets/`, `models/`, `uploads/`, `storage/`, `backups/`, `artifacts/`, `tmp/`, `temp/` также исключены. Рабочие fixtures для тестов можно хранить рядом с тестами, если они подходят для репозитория. Named volumes Docker находятся вне исходников.
+Root directories `data/`, `datasets/`, `models/`, `uploads/`, `storage/`, `backups/`, `artifacts/`, `tmp/`, and `temp/` are excluded for local application data, datasets, model weights, exports, and backups. Suitable test fixtures can live beside tests. Docker named volumes are stored outside the source tree.
 
-Из VS Code разрешены общие `.vscode/settings.json` и `.vscode/extensions.json`. `next-env.d.ts` и `*.tsbuildinfo` генерируются инструментами и игнорируются.
+Shared VS Code files `.vscode/settings.json` and `.vscode/extensions.json` are allowed. `next-env.d.ts` and `*.tsbuildinfo` are generated and ignored.
 
-`.gitignore` не удаляет уже отслеживаемые файлы из истории. Проверить правило в Git-репозитории:
+`.gitignore` does not remove files already tracked in Git history. Inspect rules with:
 
 ```sh
 git check-ignore -v .env
 git status --short
 ```
 
-## Задачи и изменения
+## Issues and changes
 
-Используйте ID YouTrack в ветке, коммите и PR: например, `feat/FF-18-region-editor` и `FF-18: add region editor`. Задачи уже существуют в [FrameFlow YouTrack](https://frameflow.youtrack.cloud/issues/FF); перед созданием новых проверяйте дубли.
+Use YouTrack IDs in branch names, commits, and PRs, for example `feat/FF-18-region-editor` and `FF-18: add region editor`. Check existing [FrameFlow issues](https://frameflow.youtrack.cloud/issues/FF) before creating new ones.
 
-В описании изменения указывайте результат и выполненные проверки. Отличайте созданные макеты, подготовленные конфигурации и проверенное в работе поведение. Обновляйте соответствующую страницу `docs/`, если меняются команды, пути или маршруты.
+Describe the outcome and validation in change descriptions. Distinguish designs, configuration, and behavior verified at runtime. Update the relevant `docs/` page whenever commands, paths, or routes change.

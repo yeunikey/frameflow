@@ -1,10 +1,10 @@
 # workspace-service
 
-[← Сервисы](../README.md) · [Запуск](../../docs/getting-started.md) · [Окружение](../../docs/configuration.md)
+[← Services](../README.md) · [Getting started](../../docs/getting-started.md) · [Configuration](../../docs/configuration.md)
 
-Минимальное NestJS-приложение: `GET /` возвращает `{"message":"Hello World!"}`.
+A minimal NestJS application: `GET /` returns `{"message":"Hello World!"}`.
 
-Из корня `frameflow/`:
+Run from the `frameflow/` root:
 
 ```sh
 pnpm --filter @frameflow/workspace-service start:dev
@@ -12,9 +12,9 @@ pnpm --filter @frameflow/workspace-service build
 pnpm --filter @frameflow/workspace-service start:prod
 ```
 
-Локальный адрес — `http://localhost:3003/`. Настройки: `HTTP_HOST` (по умолчанию `0.0.0.0`), `HTTP_PORT` (по умолчанию `3003`). Общий Dockerfile — `services/Dockerfile`, сборка выбирает сервис через `SERVICE_NAME`.
+Local URL: `http://localhost:3003/`. Environment settings: `HTTP_HOST` (default `0.0.0.0`) and `HTTP_PORT` (default `3003`). The shared `services/Dockerfile` selects the application through `SERVICE_NAME`.
 
-## Структура
+## Structure
 
 ```text
 src/
@@ -34,4 +34,4 @@ src/
             └── dto/
 ```
 
-`AppModule` подключает `WorkspaceModule`; контроллер вызывает application-сервис. Правила слоёв — [services/README.md](../README.md).
+`AppModule` imports `WorkspaceModule`; the controller delegates to the application service. See the [service structure guide](../README.md) for layer responsibilities.

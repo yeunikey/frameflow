@@ -1,45 +1,45 @@
-# Идея проекта и MVP
+# Project idea and MVP
 
-[← Документация](README.md) · [Далее: запуск →](getting-started.md)
+[← Documentation](README.md) · [Next: Getting started →](getting-started.md)
 
-## Для кого
+## Who it is for
 
-FrameFlow разрабатывается для сотрудников малого и среднего бизнеса, которые вручную переносят данные из PDF, сканов и изображений в Excel, 1С или CRM.
+FrameFlow is being developed for small and medium-sized businesses whose staff manually transfer information from PDFs, scans, and images into Excel, 1C, or CRM systems.
 
-Цель — сократить ручной перенос и сохранить возможность проверить источник каждого значения.
+The goal is to reduce manual data entry while keeping the source of every value available for review.
 
-## Основной сценарий
+## Main workflow
 
-1. Пользователь создаёт выходные таблицы и колонки, выбирает заготовки извлечения: ФИО, ИИН, адрес, IBAN, дата, сумма и другие типы.
-2. Загружает PDF, JPG или PNG.
-3. Слева выделяет области документа, справа связывает их с колонками.
-4. OCR читает текст, NER и обработчики типов предлагают значения.
-5. Пользователь проверяет значения, исправляет ошибки и выбирает из неоднозначных кандидатов.
-6. Система предлагает связи записей по настроенным ключам.
-7. Пользователь подтверждает результат и экспортирует данные в Excel, CSV либо через согласованный API.
+1. Users create output tables and columns, selecting extraction presets such as full name, IIN, address, IBAN, date, and amount.
+2. They upload a PDF, JPG, or PNG document.
+3. They select regions on the document and link those regions to columns in the output tables.
+4. OCR reads the text; NER and type-specific handlers suggest values.
+5. Users review values, correct errors, and resolve ambiguous candidates.
+6. The system suggests record relationships using configured keys.
+7. Users confirm the results and export them to Excel, CSV, or an agreed integration API.
 
-Таблицы описывают результат, а не обязательную структуру входного документа. Из одного абзаца можно получить несколько колонок; несколько колонок могут использовать одну область. Переименование колонки само по себе не обучает новую сущность.
+Tables define the output structure, not a required layout in the source document. One paragraph can populate several columns, and several columns can use the same region. Renaming a column does not train a new entity type.
 
-## Пример результата
+## Example output
 
-| Таблица | Поля | Связи |
+| Table | Fields | Relationships |
 | --- | --- | --- |
-| Клиенты | Имя, ИИН, адрес | У клиента несколько счетов |
-| Счета | Номер, дата, сумма, клиент | Принадлежит клиенту |
-| Операции | Дата, сумма, тип, счёт | Относится к счёту |
+| Customers | Name, IIN, address | A customer can have multiple invoices |
+| Invoices | Number, date, amount, customer | Belongs to a customer |
+| Transactions | Date, amount, type, invoice | References an invoice |
 
-Бизнес-записи клиентов отделены от учётных записей пользователей платформы. При отсутствии или конфликте ключа связь требует проверки человеком; совпадения имени недостаточно.
+Customer business records are separate from platform user accounts. Missing or conflicting relationship keys require human review; matching a name alone is insufficient.
 
-## Извлечение и шаблоны
+## Extraction and templates
 
-Основной путь: область → подготовка изображения → OCR с координатами → NER и обработчики типов → нормализация → черновые значения → проверка человеком.
+The intended pipeline is: region → image preparation → OCR with coordinates → NER and type-specific handlers → normalization → draft values → human review.
 
-Предварительная основа — PaddleOCR и XLM-RoBERTa. Модели планируется запускать у нас и дообучать на подходящих данных. OpenAI используется отдельно для summary и естественных ответов; основное извлечение от него не зависит.
+PaddleOCR and XLM-RoBERTa are the preliminary foundations. Models are intended to run on our infrastructure and be fine-tuned on suitable data. OpenAI is used separately for summaries and natural-language answers; core extraction does not depend on it.
 
-Шаблон сохраняет схему таблиц, параметры полей и привязки областей. Он применяется к похожим документам; изменение макета может потребовать корректировки. Нормализованные координаты не гарантируют работу на любом документе.
+A template stores table schemas, field settings, and region mappings. It applies to similar documents; layout changes may require adjustment. Normalized coordinates do not guarantee compatibility with arbitrary document layouts.
 
-## Границы первой версии
+## First-version scope
 
-Планируются ручные области, настраиваемые таблицы, заготовки полей, собственный OCR/NER, проверка и подтверждение, шаблоны, связи записей, Excel/CSV и один демонстрационный коннектор либо sandbox API.
+The planned MVP includes manual regions, configurable tables, field presets, self-hosted OCR/NER, review and confirmation, templates, record relationships, Excel/CSV exports, and one demonstration connector or sandbox API.
 
-Универсальная обработка любых документов, всех CRM и версий 1С, сложных многостраничных таблиц и произвольных бизнес-процессов выходит за рамки первого MVP.
+Universal support for arbitrary documents, every CRM and 1C version, complex multipage tables, and general-purpose business process automation is outside the first MVP.

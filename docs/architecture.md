@@ -1,8 +1,8 @@
-# Архитектура проекта
+# Project architecture
 
-[← Документация](README.md) · [Далее: сервисы →](../services/README.md)
+[← Documentation](README.md) · [Next: Services →](../services/README.md)
 
-## Структура репозитория
+## Repository layout
 
 ```text
 frameflow/
@@ -12,33 +12,33 @@ frameflow/
 │   ├── document-service/        NestJS
 │   ├── workspace-service/       NestJS
 │   ├── ai-service/              Python / FastAPI
-│   └── Dockerfile               Общая сборка NestJS
-├── packages/contracts/proto/    Место для protobuf-контрактов
+│   └── Dockerfile               Shared NestJS build
+├── packages/contracts/proto/    Protocol Buffer contracts
 ├── infra/
 │   ├── nginx/                   HTTP reverse proxy
-│   ├── postgres/init/           Инициализация БД и ролей
-│   └── minio/                   Сборка и инициализация S3
-├── docs/                        Документация
-├── compose.yaml                 Базовое окружение
-├── compose.dev.yaml             NestJS watch-режим
+│   ├── postgres/init/           Database and role initialization
+│   └── minio/                   S3 build and initialization
+├── docs/                        Documentation
+├── compose.yaml                 Base environment
+├── compose.dev.yaml             NestJS watch mode
 ├── pnpm-workspace.yaml
 └── .env.example
 ```
 
-## Ответственность сервисов
+## Service responsibilities
 
-Границы ниже описывают целевую архитектуру продукта.
+These boundaries describe the target product architecture.
 
-| Сервис | Планируемая ответственность |
+| Service | Intended responsibility |
 | --- | --- |
-| `identity-service` | Учётные записи, организации, членство и роли |
-| `document-service` | Исходные документы, страницы, области, задания и источники |
-| `workspace-service` | Таблицы, колонки, заготовки полей, шаблоны, записи, проверка, связи и экспорт |
-| `ai-service` | Подготовка изображений, OCR, NER, координаты, нормализация, summary и ответы |
+| `identity-service` | User accounts, organizations, memberships, and roles |
+| `document-service` | Source documents, pages, regions, jobs, and provenance |
+| `workspace-service` | Tables, columns, field presets, templates, records, review, relationships, and exports |
+| `ai-service` | Image preparation, OCR, NER, coordinates, normalization, summaries, and answers |
 
-Каждый NestJS-сервис — отдельное приложение с собственными зависимостями и образом. pnpm workspace объединяет их в одном репозитории. Общий Dockerfile выбирает приложение через `SERVICE_NAME`.
+Each NestJS service is a separate application with its own dependencies and image. A pnpm workspace keeps them in one repository. The shared Dockerfile selects an application through `SERVICE_NAME`.
 
-## Внутренние слои
+## Internal layers
 
 ```text
 src/
@@ -52,33 +52,33 @@ src/
     └── presentation/dto/
 ```
 
-Используется слоистая архитектура. `presentation` принимает запросы, `application` координирует сценарии, `domain` хранит предметные модели и правила, `infrastructure` содержит адаптеры к хранилищам и внешним системам. `AppModule` подключает модули сервиса, а каждый модуль регистрирует контроллеры и providers.
+The project uses layered architecture. `presentation` accepts requests, `application` coordinates use cases, `domain` contains business models and rules, and `infrastructure` holds adapters for storage and external systems. `AppModule` imports service modules, and each module registers its controllers and providers.
 
-Прямые импорты внутренних классов соседнего сервиса не используются; общение должно идти через контракты. Каждый сервис владеет своими данными и миграциями.
+Services communicate through contracts rather than importing one another's internal classes. Each service owns its data and migrations.
 
-## HTTP и gRPC
+## HTTP and gRPC
 
-HTTP-путь:
+HTTP routing:
 
 ```mermaid
 flowchart LR
-    Browser[Браузер] --> Nginx[Nginx :8080]
+    Browser[Browser] --> Nginx[Nginx :8080]
     Nginx --> Frontend[Next.js :3000]
     Nginx --> Identity[identity-service :3001]
     Nginx --> Document[document-service :3002]
     Nginx --> Workspace[workspace-service :3003]
 ```
 
-Отдельного API Gateway/BFF нет. Nginx удаляет внешний префикс `/v1/<service>` и передаёт оставшийся путь сервису. Nginx не выполняет бизнес-авторизацию и не переводит HTTP/JSON в gRPC.
+There is no separate API Gateway/BFF. Nginx strips the public `/v1/<service>` prefix and forwards the remaining path to the service. Nginx does not implement business authorization or translate HTTP/JSON into gRPC.
 
-gRPC предназначен для внутренних вызовов. Настройки `GRPC_PORT` и `*_GRPC_URL` резервируют порты 50051–50054; для обслуживания запросов требуются отдельные server transports и protobuf-контракты.
+gRPC is intended for internal calls. `GRPC_PORT` and `*_GRPC_URL` settings reserve ports 50051–50054; serving requests requires server transports and Protocol Buffer contracts.
 
-## Frontend и AI
+## Frontend and AI
 
-Frontend: React, Next.js App Router, TypeScript, Ant Design, Zustand, Zod, Tailwind CSS, PDF.js и Xior. Маршруты и страницы находятся в `src/app` (App Router); остальные слои — `widgets`, `features`, `entities`, `shared`.
+Frontend technologies: React, Next.js App Router, TypeScript, Ant Design, Zustand, Zod, Tailwind CSS, PDF.js, and Xior. Routes and pages belong in `src/app`; the other layers are `widgets`, `features`, `entities`, and `shared`.
 
-AI сохраняет Python 3.13 / FastAPI / grpcio. В `src/frameflow_ai/modules/processing/` используются четыре слоя. PaddleOCR и XLM-RoBERTa — кандидаты для основного пайплайна.
+AI uses Python 3.13 / FastAPI / grpcio. Its four layers live in `src/frameflow_ai/modules/processing/`. PaddleOCR and XLM-RoBERTa are candidates for the core extraction pipeline.
 
-## Хранилища
+## Storage
 
-В Compose используется один PostgreSQL с отдельными БД и владельцами сервисов, Redis с паролем/AOF и приватный MinIO. Общий сервер PostgreSQL не даёт сервисам право читать или изменять чужие таблицы напрямую.
+Compose uses one PostgreSQL instance with separate databases and owners per service, Redis with authentication and AOF persistence, and private MinIO storage. Sharing a PostgreSQL server does not permit services to read or modify one another's tables directly.

@@ -1,10 +1,10 @@
 # Frontend
 
-[← Документация](../../docs/README.md) · [Запуск](../../docs/getting-started.md) · [Архитектура](../../docs/architecture.md)
+[← Documentation](../../docs/README.md) · [Getting started](../../docs/getting-started.md) · [Architecture](../../docs/architecture.md)
 
-Официальный `create-next-app@16.4.2 --empty` с App Router, TypeScript, Tailwind и ESLint.
+Official `create-next-app@16.4.2 --empty` setup with App Router, TypeScript, Tailwind, and ESLint.
 
-Команды из корня проекта:
+Run commands from the project root:
 
 ```sh
 pnpm dev
@@ -13,6 +13,6 @@ pnpm --filter @frameflow/frontend lint
 pnpm --filter @frameflow/frontend typecheck
 ```
 
-Зависимости интерфейса: Ant Design, Zustand, Zod, PDF.js и Xior. Маршруты и страницы находятся в `src/app` (App Router); остальные слои — `widgets`, `features`, `entities`, `shared`.
+UI dependencies include Ant Design, Zustand, Zod, PDF.js, and Xior. Routes and pages live in `src/app` (App Router); the remaining layers are `widgets`, `features`, `entities`, and `shared`.
 
-Dockerfile собирает standalone-вывод Next.js и запускает его непривилегированным пользователем. Описание инфраструктуры — на [отдельной странице](../../docs/infrastructure.md).
+The Dockerfile builds Next.js standalone output and runs it as a non-root user. See [Infrastructure](../../docs/infrastructure.md) for details.

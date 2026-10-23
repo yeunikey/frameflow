@@ -1,71 +1,71 @@
-# Docker и инфраструктура
+# Docker and infrastructure
 
-[← Документация](README.md) · [Команды запуска →](getting-started.md)
+[← Documentation](README.md) · [Startup commands →](getting-started.md)
 
-## Compose и образы
+## Compose and images
 
-[Базовый Compose](../compose.yaml) содержит frontend, Nginx, три NestJS-приложения и хранилища. [Dev override](../compose.dev.yaml) переключает NestJS на watch, монтирует `src` и публикует порты 3001–3003 на `127.0.0.1`.
+The [base Compose file](../compose.yaml) defines the frontend, Nginx, three NestJS applications, and storage. The [development override](../compose.dev.yaml) enables NestJS watch mode, mounts `src`, and publishes ports 3001–3003 on `127.0.0.1`.
 
-[Общий Dockerfile NestJS](../services/Dockerfile) использует `SERVICE_NAME` и стадии dependencies, development, build, production-dependencies и runtime. Конечный runtime запускает `dist/main.js` от пользователя `node` и содержит production-зависимости.
+The [shared NestJS Dockerfile](../services/Dockerfile) accepts `SERVICE_NAME` and includes dependencies, development, build, production-dependencies, and runtime stages. The runtime image contains production dependencies and runs `dist/main.js` as the `node` user.
 
-Frontend имеет [собственный Dockerfile](../apps/frontend/Dockerfile) и standalone-сборку Next.js. AI использует [Python Dockerfile](../services/ai-service/Dockerfile), включается профилем `scaffold` и выполняет `sleep infinity`.
+The frontend has its [own Dockerfile](../apps/frontend/Dockerfile) with a Next.js standalone build. AI uses a [Python Dockerfile](../services/ai-service/Dockerfile), is enabled through the `scaffold` profile, and runs `sleep infinity`.
 
-Nginx ожидает готовности frontend и NestJS. NestJS-контейнеры ожидают PostgreSQL и Redis; Document и Workspace также ждут завершения `minio-init`.
+Nginx waits for the frontend and NestJS health checks. NestJS containers wait for PostgreSQL and Redis; Document and Workspace also wait for `minio-init` to complete.
 
 ## Nginx
 
-Конфигурация: [nginx.conf](../infra/nginx/nginx.conf), [default.conf](../infra/nginx/conf.d/default.conf).
+Configuration: [nginx.conf](../infra/nginx/nginx.conf), [default.conf](../infra/nginx/conf.d/default.conf).
 
-| Внешний путь | Внутренний адрес |
+| Public path | Internal destination |
 | --- | --- |
 | `/` | `frontend:3000` |
 | `/v1/identity-service` | `identity-service:3001/` |
 | `/v1/document-service` | `document-service:3002/` |
 | `/v1/workspace-service` | `workspace-service:3003/` |
-| `/healthz` | Локальный ответ Nginx `nginx ready` |
+| `/healthz` | Nginx response: `nginx ready` |
 
-Префикс `/v1/<service>` удаляется. Например, `/v1/document-service/example?id=1` станет `/example?id=1`. Это пример преобразования URL, а не описание API-метода. Корни сервисов работают с завершающим слешем и без него.
+The `/v1/<service>` prefix is stripped. For example, `/v1/document-service/example?id=1` becomes `/example?id=1`. This illustrates URL rewriting rather than an available API method. Service roots accept requests with or without a trailing slash.
 
-Неизвестный `/v1/*` возвращает 404 `api_route_not_found`; ошибка соединения с backend — 503 `service_unavailable`. Внутренняя DNS-резолюция позволяет заново находить контейнеры после их перезапуска. AI-маршрута нет.
+Unknown `/v1/*` routes return 404 `api_route_not_found`; backend connection failures return 503 `service_unavailable`. Internal DNS resolution refreshes container addresses after restarts. AI has no public route.
 
-Лимит тела запроса — 25 МБ. Локальное окружение использует HTTP. Порты хоста привязаны к loopback. `/healthz` проверяет Nginx; NestJS healthcheck проверяет только успешный HTTP-ответ `/`, а не доступность БД или бизнес-сценария.
+The request body limit is 25 MB. The local environment uses HTTP, and published ports bind to loopback. `/healthz` checks Nginx; the NestJS health check verifies a successful `/` response rather than database readiness or business operations.
 
-## Сети
+## Networks
 
-| Сеть | Подключения |
+| Network | Connections |
 | --- | --- |
-| `edge` | Nginx и frontend |
-| `api` | Nginx и три NestJS-сервиса; internal |
-| `data` | NestJS, AI, PostgreSQL, Redis, MinIO и init; internal |
-| `egress` | AI; выход во внешнюю сеть |
+| `edge` | Nginx and frontend |
+| `api` | Nginx and three NestJS services; internal |
+| `data` | NestJS, AI, PostgreSQL, Redis, MinIO, and initialization; internal |
+| `egress` | AI outbound connectivity |
 
-Nginx не подключён к сети хранилищ. PostgreSQL и Redis не публикуют порты на хост. Браузер взаимодействует с бизнес-API через Nginx.
+Nginx is not connected to the storage network. PostgreSQL and Redis do not publish host ports. Browser requests to the business API pass through Nginx.
 
 ## PostgreSQL
 
-Используется PostgreSQL 17. [Init-скрипт](../infra/postgres/init/01-service-databases.sh) создаёт отдельные БД и владельцев Identity, Document и Workspace при первом старте на пустом `postgres_data`.
+PostgreSQL 17 is configured with an [initialization script](../infra/postgres/init/01-service-databases.sh) that creates separate databases and owners for Identity, Document, and Workspace on first startup with an empty `postgres_data` volume.
 
-Для существующего volume изменения `.env` не выполняют повторную инициализацию и не меняют пароли ролей. Не удаляйте рабочие volumes для обычного применения настроек.
+Changing `.env` does not rerun initialization or change existing role passwords. Do not delete working volumes to apply routine configuration changes.
 
 ## Redis
 
-Redis 8 настроен с паролем и AOF в `redis_data`.
+Redis 8 uses password authentication and AOF persistence in `redis_data`.
 
 ## MinIO
 
-MinIO server и `mc` собираются из официальных source release с проверкой SHA-256 архивов в [Dockerfile](../infra/minio/Dockerfile). Release-теги и digest базовых образов закреплены. Первая сборка скачивает исходники и зависимости.
+MinIO server and `mc` are built from official source releases, with archive SHA-256 verification in the [Dockerfile](../infra/minio/Dockerfile). Release tags and base image digests are pinned. The initial build downloads sources and dependencies.
 
-После готовности MinIO [init-скрипт](../infra/minio/init.sh) создаёт приватные бакеты:
+Once MinIO is ready, the [initialization script](../infra/minio/init.sh) creates private buckets:
 
-| Бакет по умолчанию | Назначение |
+| Default bucket | Purpose |
 | --- | --- |
-| `frameflow-documents` | Исходные документы |
-| `frameflow-pages` | Страницы и изображения областей |
-| `frameflow-exports` | Результаты экспорта |
-| `frameflow-models` | Будущие веса моделей |
+| `frameflow-documents` | Source documents |
+| `frameflow-pages` | Pages and region images |
+| `frameflow-exports` | Exported files |
+| `frameflow-models` | Model weights |
 
-Анонимный доступ выключен. Для приложений создаётся отдельный пользователь с [policy](../infra/minio/policy.json.template) на эти бакеты; root-учётные данные используются для инициализации и Console. Скрипт можно повторять с той же конфигурацией.
+Anonymous access is disabled. Applications use a separate user with a bucket-scoped [policy](../infra/minio/policy.json.template); root credentials are used for initialization and Console access. Initialization can be repeated with the same configuration.
 
-## Хранение данных
+## Persistent data
 
-Named volumes: `postgres_data`, `redis_data`, `minio_data`. Обычный `docker compose down` их сохраняет.
+Named volumes: `postgres_data`, `redis_data`, and `minio_data`. A regular `docker compose down` preserves them.

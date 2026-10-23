@@ -1,9 +1,9 @@
 # AI Service
 
-[← Сервисы](../README.md) · [Запуск](../../docs/getting-started.md) · [Окружение](../../docs/configuration.md)
+[← Services](../README.md) · [Getting started](../../docs/getting-started.md) · [Configuration](../../docs/configuration.md)
 
-Стек сервиса: Python 3.13 / FastAPI / grpcio. Контейнер профиля `scaffold` ожидает с `sleep infinity`; порты в Compose зарезервированы, но не прослушиваются.
+Service stack: Python 3.13 / FastAPI / grpcio. The `scaffold` profile runs this container with `sleep infinity`; Compose ports are reserved but not listened on.
 
-`requirements.txt` фиксирует прямые зависимости; это не полный lock-файл транзитивных зависимостей.
+`requirements.txt` pins direct dependencies; it is not a complete lockfile for transitive dependencies.
 
-Слои модуля обработки: `src/frameflow_ai/modules/processing/{application,domain,infrastructure,presentation}` по той же схеме, что и в NestJS-сервисах.
+The processing module follows the same layer structure as the NestJS services: `src/frameflow_ai/modules/processing/{application,domain,infrastructure,presentation}`.

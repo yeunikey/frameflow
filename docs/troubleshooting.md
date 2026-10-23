@@ -1,60 +1,60 @@
-# Решение проблем
+# Troubleshooting
 
-[← Документация](README.md) · [Вернуться к запуску →](getting-started.md)
+[← Documentation](README.md) · [Back to Getting started →](getting-started.md)
 
-## pnpm отклоняет версию Node.js
+## pnpm rejects the Node.js version
 
-Проверьте `node --version` и `pnpm --version`. В `.npmrc` включён `engine-strict`; нужны Node.js `>=24.15.0 <25` и pnpm 10.34.5. После переключения версии выполните `pnpm install --frozen-lockfile`.
+Check `node --version` and `pnpm --version`. `.npmrc` enables `engine-strict`; use Node.js `>=24.15.0 <25` and pnpm 10.34.5. After switching versions, run `pnpm install --frozen-lockfile`.
 
-## Команда не найдена или pnpm не видит сервис
+## A command or service cannot be found
 
-Выполняйте команды из `frameflow/`, а не из родительской папки с отчётами. Используйте имена с `-service`, например `pnpm dev:workspace-service`. После обновления зависимостей выполните установку по lock-файлу.
+Run commands from `frameflow/`, not its parent directory. Use service names ending in `-service`, such as `pnpm dev:workspace-service`. Reinstall from the lockfile after dependency changes.
 
-## Compose сообщает о незаданной переменной
+## Compose reports a missing variable
 
-Создайте локальный `.env` из `.env.example`, заполните обязательные пароли и выполните `pnpm compose:check`. Не публикуйте содержимое `.env` и вывод полного `compose config` с паролями.
+Create `.env` from `.env.example`, supply the required passwords, and run `pnpm compose:check`. Do not share `.env` contents or full `compose config` output containing passwords.
 
-## Docker daemon недоступен
+## The Docker daemon is unavailable
 
-Статическая проверка Compose может работать без запущенного движка. Для `up`, `build`, `ps` и `logs` должен быть запущен Docker Engine/Desktop.
+Static Compose validation can run without a running daemon. Docker Engine/Desktop must be running for `up`, `build`, `ps`, and `logs`.
 
-## Порт уже занят
+## A port is already in use
 
-Проверьте, нет ли второго экземпляра приложения. Локальные NestJS и dev Compose используют одни порты 3001–3003. Остановите один из режимов или задайте другой локальный `HTTP_PORT`. Порт Nginx на хосте меняется через корневой `.env`; опубликованные dev-порты — через `compose.dev.yaml`.
+Check for another running application. Local NestJS applications and the development Compose override use ports 3001–3003. Stop one mode or select a different local `HTTP_PORT`. Set the Nginx host port in the root `.env`; published development ports are defined in `compose.dev.yaml`.
 
-## localhost:8080 не открывается при pnpm dev
+## localhost:8080 does not open after pnpm dev
 
-`pnpm dev` запускает только Next.js на порту 3000. Nginx и `/v1/*-service` на 8080 доступны после запуска Compose. Локальный Workspace отдельно отвечает на `http://localhost:3003/`.
+`pnpm dev` starts only Next.js on port 3000. Nginx and `/v1/*-service` routes on port 8080 require Compose. A locally started Workspace service responds at `http://localhost:3003/`.
 
-## Nginx возвращает 404 или 503
+## Nginx returns 404 or 503
 
-Используйте `/v1/identity-service`, `/v1/document-service` или `/v1/workspace-service`. Старые `/api/...` и `/v1/workspace` не настроены. Проверьте, что путь соответствует маршруту контроллера.
+Use `/v1/identity-service`, `/v1/document-service`, or `/v1/workspace-service`. The older `/api/...` and `/v1/workspace` routes are not configured. Check that the requested path matches a controller route.
 
-Для запущенного окружения:
+For a running environment:
 
 ```sh
 docker compose ps -a
 docker compose logs --tail=100 nginx workspace-service
 ```
 
-503 `service_unavailable` означает недоступность backend для прокси. Проверьте запуск приложения, его healthcheck и сообщения об ошибках. Успешный `/healthz` проверяет только Nginx.
+503 `service_unavailable` means the backend cannot be reached by the proxy. Check the application's startup, health check, and logs. A successful `/healthz` response checks Nginx only.
 
-## Document и Workspace ожидают MinIO
+## Document and Workspace are waiting for MinIO
 
-Проверьте `docker compose ps -a` и `docker compose logs --tail=100 minio minio-init`. Нормальное завершение `minio-init` с кодом 0 — ожидаемое состояние одноразового контейнера, после него могут стартовать зависимые сервисы.
+Inspect `docker compose ps -a` and `docker compose logs --tail=100 minio minio-init`. Exit code 0 is the expected result for the one-shot `minio-init` container; dependent services can then start.
 
-Сборка MinIO и mc скачивает закреплённые архивы исходников и Go-зависимости. Ошибки сети, checksum или сборки нужно устранить до запуска init.
+MinIO and mc builds download pinned source archives and Go dependencies. Resolve network, checksum, or build errors before initialization.
 
-## Пароль PostgreSQL из .env не применяется
+## A PostgreSQL password change in .env has no effect
 
-Init выполняется только для нового volume. Уже созданные БД и роли сохраняют прежние параметры. Исправляйте существующие роли отдельно с административным доступом; не удаляйте volume с данными ради смены пароля.
+Initialization only runs on a new volume. Existing databases and roles retain their settings. Update existing roles separately using administrative access; do not remove a data volume just to change a password.
 
-## Изменения не видны в Docker
+## Changes are not visible in Docker
 
-В базовом Compose приложение запускается из собранного образа: после изменения исходников нужна пересборка. Для NestJS watch используйте оба файла: `docker compose -f compose.yaml -f compose.dev.yaml up --build -d`.
+Base Compose runs compiled images; source changes require a rebuild. For NestJS watch mode, use both files: `docker compose -f compose.yaml -f compose.dev.yaml up --build -d`.
 
-Dev override монтирует только `src`. Изменение зависимостей, `tsconfig` или переменных сборки frontend требует пересборки и в dev-режиме. Frontend в Compose запускается из собранного образа.
+The development override mounts only `src`. Dependency changes, `tsconfig` changes, and frontend build variables require a rebuild even in development mode. The frontend runs from its compiled image in Compose.
 
-## AI не отвечает и gRPC недоступен
+## AI or gRPC endpoints do not respond
 
-AI-контейнер в профиле `scaffold` выполняет `sleep infinity` и не слушает HTTP/gRPC-порты. Для gRPC-вызовов необходимы серверный transport и protobuf-контракт; значения портов в окружении сами по себе сервер не запускают.
+The AI container in the `scaffold` profile runs `sleep infinity` and does not listen on HTTP/gRPC ports. gRPC calls require a server transport and a Protocol Buffer contract; configuring port variables alone does not start a server.

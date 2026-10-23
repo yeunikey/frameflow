@@ -1,23 +1,23 @@
-# Структура сервисов
+# Service structure
 
-[← Документация](../docs/README.md) · [Запуск](../docs/getting-started.md) · [Архитектура](../docs/architecture.md)
+[← Documentation](../docs/README.md) · [Getting started](../docs/getting-started.md) · [Architecture](../docs/architecture.md)
 
-Внутри каждого сервиса используется структура `src/modules/<name>/{application,domain,infrastructure,presentation}`. Каждый NestJS-сервис остаётся отдельным приложением в pnpm workspace.
+Services use `src/modules/<name>/{application,domain,infrastructure,presentation}`. Each NestJS service is a separate application in the pnpm workspace.
 
-| Сервис | Подключение | Корень |
+| Service | Module | Root |
 | --- | --- | --- |
 | [Identity](identity-service/README.md) | `IdentityModule` | `identity-service/src/modules/identity/` |
 | [Document](document-service/README.md) | `DocumentsModule` | `document-service/src/modules/documents/` |
 | [Workspace](workspace-service/README.md) | `WorkspaceModule` | `workspace-service/src/modules/workspace/` |
 | [AI](ai-service/README.md) | Python / FastAPI | `ai-service/src/frameflow_ai/modules/processing/` |
 
-В NestJS `main.ts` запускает приложение, `app.module.ts` подключает модули из `modules/`. Файл `<name>.module.ts` регистрирует контроллеры из `presentation/` и providers из `application/`.
+In NestJS, `main.ts` starts the application and `app.module.ts` imports modules from `modules/`. Each `<name>.module.ts` registers controllers from `presentation/` and providers from `application/`.
 
-- `presentation/` — HTTP/gRPC-контроллеры; `dto/` — входные и выходные DTO.
-- `application/` — сценарии и прикладные сервисы, вызываемые контроллерами.
-- `domain/` — сущности, типы и предметные правила; `entities/` — определения сущностей.
-- `infrastructure/` — адаптеры БД, Redis, S3 и внешних сервисов; `migrations/` — будущие миграции.
+- `presentation/`: HTTP/gRPC controllers; `dto/` contains request and response DTOs.
+- `application/`: use cases and application services invoked by controllers.
+- `domain/`: entities, types, and business rules; `entities/` contains entity definitions.
+- `infrastructure/`: database, Redis, S3, and external service adapters; `migrations/` contains database migrations.
 
-Контроллер передаёт выполнение application-сервису. Адаптеры подключаются в модуле через DI. Общение между отдельными сервисами должно идти через согласованные контракты; импортировать внутренние модули соседнего сервиса не нужно. Новые функциональные модули размещаются в `src/modules/` с таким же набором слоёв.
+Controllers delegate to application services. Adapters are connected through dependency injection in the module. Services communicate through agreed contracts rather than importing each other's internals. Add new functional modules under `src/modules/` using the same layers.
 
-Общий Dockerfile выбирает NestJS-приложение по `SERVICE_NAME`; dev override монтирует его `src`. AI использует Python/FastAPI.
+The shared Dockerfile selects a NestJS application through `SERVICE_NAME`; the development override mounts its `src` directory. AI uses Python/FastAPI.

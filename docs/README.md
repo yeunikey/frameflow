@@ -1,17 +1,17 @@
-# Документация FrameFlow
+# FrameFlow documentation
 
-[← Главная](../README.md)
+[← Home](../README.md)
 
-Начните с [идеи проекта](project.md), затем откройте [быстрый старт](getting-started.md).
+Start with the [project idea](project.md), then follow [Getting started](getting-started.md).
 
-| Раздел | Что можно узнать |
+| Section | Contents |
 | --- | --- |
-| [Идея и MVP](project.md) | Зачем нужен проект и какие функции запланированы |
-| [Запуск](getting-started.md) | Как установить зависимости и запустить приложения |
-| [Архитектура](architecture.md) | Как разделены сервисы и слои |
-| [Конфигурация](configuration.md) | Какие переменные используются и где их задавать |
-| [Инфраструктура](infrastructure.md) | Как устроены Docker, Nginx и хранилища |
-| [Разработка](development.md) | Команды, проверки и работа с Git |
-| [Решение проблем](troubleshooting.md) | Что проверять при ошибках |
-| [Frontend](../apps/frontend/README.md) | Шаблон Next.js и локальные команды |
-| [Сервисы](../services/README.md) | Структура каждого backend-приложения |
+| [Project and MVP](project.md) | Purpose, users, planned features, and scope |
+| [Getting started](getting-started.md) | Dependency installation and application startup |
+| [Architecture](architecture.md) | Service boundaries and layers |
+| [Configuration](configuration.md) | Environment variables and where to set them |
+| [Infrastructure](infrastructure.md) | Docker, Nginx, and storage |
+| [Development](development.md) | Commands, checks, and Git conventions |
+| [Troubleshooting](troubleshooting.md) | Diagnosing common issues |
+| [Frontend](../apps/frontend/README.md) | Next.js setup and local commands |
+| [Services](../services/README.md) | Backend application structure |

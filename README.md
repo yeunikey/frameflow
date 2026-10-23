@@ -1,41 +1,41 @@
 # FrameFlow
 
-Платформа для извлечения данных из PDF и изображений в настраиваемые связанные таблицы. Пользователь выделяет области документа, задаёт нужные поля, проверяет найденные значения и подтверждает результат перед экспортом.
+A document processing platform for extracting data from PDFs and images into configurable, linked tables. Users select document regions, define the fields they need, review extracted values, and confirm the results before exporting them.
 
-## Идея
+## Project idea
 
-FrameFlow помогает бухгалтерам, менеджерам и административным сотрудникам переносить данные из заявлений, счетов и других документов в рабочие таблицы. Таблица в исходном документе не обязательна: ФИО, ИИН, адрес и реквизиты могут находиться в обычном абзаце.
+FrameFlow helps accountants, managers, and administrative staff transfer information from applications, invoices, and other documents into business tables. The source document does not need to contain a table: names, individual identification numbers (IINs), addresses, and bank details can appear in ordinary paragraphs.
 
-Рабочее место объединяет документ слева и таблицы справа. Каждая колонка связана с областью-источником; каждое извлечённое значение должно сохранять происхождение. Пользователь проверяет ошибки и неоднозначности, связывает записи, например «Клиент → Счёт → Операция», и выгружает подтверждённые данные.
+The workspace places the document on the left and output tables on the right. Each column is linked to a source region, and each extracted value should retain its provenance. Users resolve errors and ambiguous matches, link records such as Customer → Invoice → Transaction, and export confirmed data.
 
-Основное извлечение планируется на собственном OCR/NER-пайплайне. OpenAI предназначен для summary и ответов на вопросы. Подробнее — [идея и границы MVP](docs/project.md).
+Core extraction is planned around a self-hosted OCR/NER pipeline. OpenAI is intended for summaries and natural-language answers. Read more about the [project idea and MVP scope](docs/project.md).
 
-## Документация
+## Documentation
 
-[Полное оглавление](docs/README.md).
+[Full documentation index](docs/README.md).
 
-| Страница | Содержание |
+| Page | Contents |
 | --- | --- |
-| [Идея проекта](docs/project.md) | Пользователи, сценарий и границы MVP |
-| [Быстрый старт](docs/getting-started.md) | Установка, локальный запуск, Docker и проверка адресов |
-| [Архитектура](docs/architecture.md) | Сервисы, слои, frontend и связи между компонентами |
-| [Настройки окружения](docs/configuration.md) | `.env`, порты, параметры БД и S3 |
-| [Инфраструктура](docs/infrastructure.md) | Compose, Nginx, PostgreSQL, Redis и MinIO |
-| [Разработка](docs/development.md) | Команды, структура кода и правила Git |
-| [Решение проблем](docs/troubleshooting.md) | Ошибки запуска, маршрутов и конфигурации |
-| [Каталог сервисов](services/README.md) | Модули и внутренняя структура backend |
+| [Project and MVP](docs/project.md) | Users, workflow, and scope |
+| [Getting started](docs/getting-started.md) | Installation, local development, Docker, and endpoints |
+| [Architecture](docs/architecture.md) | Services, layers, frontend, and component boundaries |
+| [Configuration](docs/configuration.md) | Environment variables, ports, database, and S3 settings |
+| [Infrastructure](docs/infrastructure.md) | Compose, Nginx, PostgreSQL, Redis, and MinIO |
+| [Development](docs/development.md) | Commands, code organization, and Git conventions |
+| [Troubleshooting](docs/troubleshooting.md) | Startup, routing, and configuration issues |
+| [Services](services/README.md) | Backend modules and internal structure |
 
-Все команды выполняются из корня `frameflow/`. Для начала нужны Node.js 24.15+ в ветке 24 и pnpm 10.34.5:
+Run all commands from the `frameflow/` root. Use Node.js 24.15+ within the 24.x release line and pnpm 10.34.5:
 
 ```sh
 pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Это запускает только frontend на `http://localhost:3000`. Полный порядок запуска — в [быстром старте](docs/getting-started.md).
+This starts only the frontend at `http://localhost:3000`. See [Getting started](docs/getting-started.md) for the complete setup.
 
-## Ссылки
+## Links
 
-- [Макеты FrameFlow в Figma](https://www.figma.com/design/VsAVVvfZj0pTlVEPEOMa4D/FrameFlow?node-id=0-1)
-- [Задачи FrameFlow в YouTrack](https://frameflow.youtrack.cloud/issues/FF)
-- [Спринт 1 · DOC, дизайн и backend](https://frameflow.youtrack.cloud/agiles/204-1/218-2)
+- [FrameFlow designs in Figma](https://www.figma.com/design/VsAVVvfZj0pTlVEPEOMa4D/FrameFlow?node-id=0-1)
+- [FrameFlow issues in YouTrack](https://frameflow.youtrack.cloud/issues/FF)
+- [Sprint 1: Documentation, Design, and Backend](https://frameflow.youtrack.cloud/agiles/204-1/218-2)

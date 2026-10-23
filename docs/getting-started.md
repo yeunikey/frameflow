@@ -1,15 +1,15 @@
-# Установка и запуск
+# Installation and startup
 
-[← Документация](README.md) · [Далее: конфигурация →](configuration.md)
+[← Documentation](README.md) · [Next: Configuration →](configuration.md)
 
-Все команды ниже выполняются из `frameflow/`, где находятся `package.json` и `compose.yaml`.
+Run all commands from `frameflow/`, which contains `package.json` and `compose.yaml`.
 
-## Требования
+## Requirements
 
 - Node.js `>=24.15.0 <25`.
-- pnpm `10.34.5` — версия указана в `packageManager`.
-- Для контейнерного окружения — Docker Engine/Desktop и Docker Compose v2.
-- Python 3.13 понадобится при реализации AI; для запуска текущих Node-приложений он не требуется.
+- pnpm `10.34.5`, pinned in `packageManager`.
+- Docker Engine/Desktop and Docker Compose v2 for container-based development.
+- Python 3.13 for AI development; it is not required to run the Node applications.
 
 ```sh
 node --version
@@ -17,99 +17,99 @@ pnpm --version
 pnpm install --frozen-lockfile
 ```
 
-Если pnpm отсутствует, установите закреплённую версию:
+If pnpm is missing, install the pinned version:
 
 ```sh
 npm install --global pnpm@10.34.5
 ```
 
-## Локальная разработка без Docker
+## Local development without Docker
 
-Каждую команду запускайте в отдельном терминале:
+Run each command in a separate terminal:
 
-| Приложение | Команда | Адрес |
+| Application | Command | URL |
 | --- | --- | --- |
 | Frontend | `pnpm dev` | `http://localhost:3000` |
 | Identity | `pnpm dev:identity-service` | `http://localhost:3001/` |
 | Document | `pnpm dev:document-service` | `http://localhost:3002/` |
 | Workspace | `pnpm dev:workspace-service` | `http://localhost:3003/` |
 
-NestJS-приложения отвечают `{"message":"Hello World!"}`. Для проверки Hello World запуск хранилищ не требуется. Остановка — `Ctrl+C` в соответствующем терминале.
+The NestJS applications return `{"message":"Hello World!"}`. Storage services are not required for this check. Stop an application with `Ctrl+C` in its terminal.
 
-При таком запуске Nginx на порту 8080 отсутствует. `.env` в корне автоматически используется Compose, но NestJS bootstrap самостоятельно этот файл не загружает. Локальные значения можно передать прямо команде:
+This mode does not start Nginx on port 8080. Compose reads the root `.env` automatically, but the NestJS bootstrap does not load that file itself. Pass local settings through environment variables:
 
 ```sh
 HTTP_HOST=127.0.0.1 HTTP_PORT=3013 pnpm dev:workspace-service
 ```
 
-Относительный адрес API `/v1` используется при работе через Nginx. Для локального frontend с отдельным backend нужно настроить proxy/CORS и адрес API.
+The relative API path `/v1` is intended for access through Nginx. Running the frontend and backend separately requires an appropriate proxy/CORS setup and API URL.
 
-## Подготовка окружения Compose
+## Prepare the Compose environment
 
-Если `.env` уже существует, сохраните его. На новом рабочем месте создайте файл:
+Keep an existing `.env` file. On a new machine, create it from the example:
 
 ```sh
 cp -n .env.example .env
 chmod 600 .env
 ```
 
-Замените пароли `replace-with-*` собственными значениями. Параметры описаны в [конфигурации](configuration.md).
+Replace every `replace-with-*` password with your own value. See [Configuration](configuration.md) for details.
 
-Статическая проверка не запускает контейнеры:
+Validate the configuration without starting containers:
 
 ```sh
 pnpm compose:check
 ```
 
-## Запуск в контейнерах
+## Run in containers
 
 ```sh
 docker compose up --build -d
 ```
 
-Будут запущены Nginx, frontend, три NestJS-сервиса, PostgreSQL, Redis, MinIO и одноразовый `minio-init`. AI по умолчанию исключён. Первая сборка MinIO/mc требует доступа к исходникам и Go-зависимостям и может занять заметное время.
+This starts Nginx, the frontend, three NestJS services, PostgreSQL, Redis, MinIO, and the one-shot `minio-init` service. AI is excluded by default. The first MinIO/mc build downloads source archives and Go dependencies and can take some time.
 
-| Адрес | Ожидаемый ответ после запуска |
+| URL | Expected response after startup |
 | --- | --- |
-| `http://localhost:8080` | Пустой Next.js frontend |
+| `http://localhost:8080` | Next.js frontend |
 | `http://localhost:8080/healthz` | `nginx ready` |
 | `http://localhost:8080/v1/identity-service` | JSON Hello World |
 | `http://localhost:8080/v1/document-service` | JSON Hello World |
 | `http://localhost:8080/v1/workspace-service` | JSON Hello World |
-| `http://localhost:9000` | S3 endpoint MinIO; не страница приложения |
-| `http://localhost:9001` | MinIO Console, root-данные из `.env` |
+| `http://localhost:9000` | MinIO S3 endpoint, not an application page |
+| `http://localhost:9001` | MinIO Console; use root credentials from `.env` |
 
-Проверка одного сервиса после готовности окружения:
+Check a service after the environment is ready:
 
 ```sh
 curl -i http://localhost:8080/v1/workspace-service
 ```
 
-В базовом Compose порты NestJS не публикуются на хост. Для watch-режима и прямого доступа к портам 3001–3003 используйте override:
+The base Compose configuration does not publish NestJS ports to the host. For watch mode and direct access to ports 3001–3003, use the development override:
 
 ```sh
 docker compose -f compose.yaml -f compose.dev.yaml up --build -d
 ```
 
-Frontend при этом остаётся в собранном режиме. Запущенные локально NestJS-приложения нужно остановить, если они занимают те же порты.
+The frontend continues to use its compiled image. Stop locally running NestJS applications if they occupy the same ports.
 
-## Другие режимы
+## Other modes
 
-Только хранилища:
+Storage only:
 
 ```sh
 docker compose up --build -d postgres redis minio minio-init
 ```
 
-Дополнительно AI-контейнер:
+Include the AI container:
 
 ```sh
 docker compose --profile scaffold up --build -d
 ```
 
-AI выполняет `sleep infinity`; endpoint для запросов не появится.
+AI runs `sleep infinity`; this mode does not expose a working HTTP/gRPC endpoint.
 
-## Состояние, логи и остановка
+## Container status, logs, and shutdown
 
 ```sh
 docker compose ps -a
@@ -118,10 +118,10 @@ docker compose logs --tail=100 minio-init
 docker compose down
 ```
 
-Для окружения с override используйте тот же набор файлов:
+Use the same configuration files when stopping the development environment:
 
 ```sh
 docker compose -f compose.yaml -f compose.dev.yaml down
 ```
 
-Для окружения с AI — `docker compose --profile scaffold down`. Обычный `down` сохраняет named volumes. Флаг `-v` удаляет данные хранилищ, поэтому в обычную команду остановки он не включён.
+For the AI profile, use `docker compose --profile scaffold down`. A regular `down` preserves named volumes. The `-v` option removes storage data and is therefore excluded from the normal shutdown command.

@@ -1,0 +1,13 @@
+packages:
+  - apps/*
+  - services/identity-service
+  - services/document-service
+  - services/workspace-service
+
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - sharp
+  - unrs-resolver
+
+ignoredBuiltDependencies:
+  - protobufjs

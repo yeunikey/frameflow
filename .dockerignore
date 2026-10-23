@@ -1,0 +1,24 @@
+**/.git
+**/node_modules
+**/.next
+**/dist
+**/__pycache__
+**/.venv
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+!**/.env.example
+.DS_Store
+literature
+output
+report_work
+diagrams
+design
+design_work
+artifacts
+our idea
+reqiurments
+*.docx
+*.pdf
+.data
+.secrets

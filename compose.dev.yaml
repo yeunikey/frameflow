@@ -1,0 +1,33 @@
+# Explicit override: docker compose -f compose.yaml -f compose.dev.yaml ...
+# Frontend keeps its existing image; NestJS services use watch mode.
+x-backend-dev: &backend-dev
+  environment:
+    NODE_ENV: development
+
+services:
+  identity-service:
+    <<: *backend-dev
+    build:
+      target: development
+    volumes:
+      - ./services/identity-service/src:/workspace/services/identity-service/src:ro
+    ports:
+      - "127.0.0.1:3001:3001"
+
+  document-service:
+    <<: *backend-dev
+    build:
+      target: development
+    volumes:
+      - ./services/document-service/src:/workspace/services/document-service/src:ro
+    ports:
+      - "127.0.0.1:3002:3002"
+
+  workspace-service:
+    <<: *backend-dev
+    build:
+      target: development
+    volumes:
+      - ./services/workspace-service/src:/workspace/services/workspace-service/src:ro
+    ports:
+      - "127.0.0.1:3003:3003"

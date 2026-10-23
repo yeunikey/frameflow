@@ -1,0 +1,282 @@
+name: ${COMPOSE_PROJECT_NAME:-frameflow}
+
+x-node-service: &node-service
+  init: true
+  restart: unless-stopped
+  networks: [api, data]
+  healthcheck:
+    test: [CMD, node, -e, "fetch('http://127.0.0.1:'+process.env.HTTP_PORT+'/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+    interval: 10s
+    timeout: 5s
+    retries: 10
+    start_period: 20s
+
+x-redis-env: &redis-env
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
+
+x-storage-env: &storage-env
+  S3_ENDPOINT: http://minio:9000
+  S3_PUBLIC_ENDPOINT: http://localhost:${MINIO_API_PORT:-9000}
+  S3_REGION: ${S3_REGION:-us-east-1}
+  S3_FORCE_PATH_STYLE: "true"
+  S3_ACCESS_KEY_ID: ${MINIO_APP_USER:?Set MINIO_APP_USER in .env}
+  S3_SECRET_ACCESS_KEY: ${MINIO_APP_PASSWORD:?Set MINIO_APP_PASSWORD in .env}
+  S3_BUCKET_DOCUMENTS: ${S3_BUCKET_DOCUMENTS:?Set S3_BUCKET_DOCUMENTS in .env}
+  S3_BUCKET_PAGES: ${S3_BUCKET_PAGES:?Set S3_BUCKET_PAGES in .env}
+  S3_BUCKET_EXPORTS: ${S3_BUCKET_EXPORTS:?Set S3_BUCKET_EXPORTS in .env}
+  S3_BUCKET_MODELS: ${S3_BUCKET_MODELS:?Set S3_BUCKET_MODELS in .env}
+
+services:
+  nginx:
+    image: nginx:stable-alpine@sha256:47928bf67eb62a1863cb08d9ecb52d3e704304ba614eaee17884204677702951
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${HTTP_PORT:-8080}:80"
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      frontend:
+        condition: service_healthy
+      identity-service:
+        condition: service_healthy
+      document-service:
+        condition: service_healthy
+      workspace-service:
+        condition: service_healthy
+    networks: [edge, api]
+    healthcheck:
+      test: [CMD-SHELL, "wget -q -O /dev/null http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/v1}
+    init: true
+    restart: unless-stopped
+    expose: ["3000"]
+    networks: [edge]
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  identity-service:
+    <<: *node-service
+    image: frameflow/identity-service:local
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+      target: runtime
+      args:
+        SERVICE_NAME: identity-service
+    environment:
+      <<: *redis-env
+      NODE_ENV: production
+      HTTP_HOST: 0.0.0.0
+      HTTP_PORT: "3001"
+      GRPC_HOST: 0.0.0.0
+      GRPC_PORT: "50051"
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${IDENTITY_DB:?Set IDENTITY_DB in .env}
+      PGUSER: ${IDENTITY_DB_USER:?Set IDENTITY_DB_USER in .env}
+      PGPASSWORD: ${IDENTITY_DB_PASSWORD:?Set IDENTITY_DB_PASSWORD in .env}
+    expose: ["3001"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  document-service:
+    <<: *node-service
+    image: frameflow/document-service:local
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+      target: runtime
+      args:
+        SERVICE_NAME: document-service
+    environment:
+      <<: [*redis-env, *storage-env]
+      NODE_ENV: production
+      HTTP_HOST: 0.0.0.0
+      HTTP_PORT: "3002"
+      GRPC_HOST: 0.0.0.0
+      GRPC_PORT: "50052"
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${DOCUMENT_DB:?Set DOCUMENT_DB in .env}
+      PGUSER: ${DOCUMENT_DB_USER:?Set DOCUMENT_DB_USER in .env}
+      PGPASSWORD: ${DOCUMENT_DB_PASSWORD:?Set DOCUMENT_DB_PASSWORD in .env}
+      WORKSPACE_GRPC_URL: workspace-service:50053
+      AI_GRPC_URL: ai-service:50054
+    expose: ["3002"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+
+  workspace-service:
+    <<: *node-service
+    image: frameflow/workspace-service:local
+    build:
+      context: .
+      dockerfile: services/Dockerfile
+      target: runtime
+      args:
+        SERVICE_NAME: workspace-service
+    environment:
+      <<: [*redis-env, *storage-env]
+      NODE_ENV: production
+      HTTP_HOST: 0.0.0.0
+      HTTP_PORT: "3003"
+      GRPC_HOST: 0.0.0.0
+      GRPC_PORT: "50053"
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${WORKSPACE_DB:?Set WORKSPACE_DB in .env}
+      PGUSER: ${WORKSPACE_DB_USER:?Set WORKSPACE_DB_USER in .env}
+      PGPASSWORD: ${WORKSPACE_DB_PASSWORD:?Set WORKSPACE_DB_PASSWORD in .env}
+      DOCUMENT_GRPC_URL: document-service:50052
+    expose: ["3003"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+
+  ai-service:
+    profiles: [scaffold]
+    build:
+      context: .
+      dockerfile: services/ai-service/Dockerfile
+    init: true
+    restart: unless-stopped
+    environment:
+      <<: *storage-env
+      HTTP_HOST: 0.0.0.0
+      HTTP_PORT: "8000"
+      GRPC_HOST: 0.0.0.0
+      GRPC_PORT: "50054"
+      EXTERNAL_TEXT_GENERATION_ENABLED: "false"
+    expose: ["8000", "50054"]
+    networks: [data, egress]
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+
+  postgres:
+    image: postgres:17-bookworm@sha256:858bb5e98eed02eb8cafbcdc007f9a65d1b613972028944a8ec2133ccaf80d27
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      IDENTITY_DB: ${IDENTITY_DB:?Set IDENTITY_DB in .env}
+      IDENTITY_DB_USER: ${IDENTITY_DB_USER:?Set IDENTITY_DB_USER in .env}
+      IDENTITY_DB_PASSWORD: ${IDENTITY_DB_PASSWORD:?Set IDENTITY_DB_PASSWORD in .env}
+      DOCUMENT_DB: ${DOCUMENT_DB:?Set DOCUMENT_DB in .env}
+      DOCUMENT_DB_USER: ${DOCUMENT_DB_USER:?Set DOCUMENT_DB_USER in .env}
+      DOCUMENT_DB_PASSWORD: ${DOCUMENT_DB_PASSWORD:?Set DOCUMENT_DB_PASSWORD in .env}
+      WORKSPACE_DB: ${WORKSPACE_DB:?Set WORKSPACE_DB in .env}
+      WORKSPACE_DB_USER: ${WORKSPACE_DB_USER:?Set WORKSPACE_DB_USER in .env}
+      WORKSPACE_DB_PASSWORD: ${WORKSPACE_DB_PASSWORD:?Set WORKSPACE_DB_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    networks: [data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  redis:
+    image: redis:8-alpine@sha256:0bf6577d7774e592b29d093e3ac9390eb91e13d72c21e506afce736de5e0eeb0
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
+    command: [sh, -ec, 'exec redis-server --appendonly yes --requirepass "$${REDIS_PASSWORD}"']
+    volumes:
+      - redis_data:/data
+    networks: [data]
+    healthcheck:
+      test: [CMD-SHELL, 'REDISCLI_AUTH="$${REDIS_PASSWORD}" redis-cli --no-auth-warning ping | grep -q PONG']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    build:
+      context: ./infra/minio
+      target: server
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+      MINIO_REGION_NAME: ${S3_REGION:-us-east-1}
+    ports:
+      - "127.0.0.1:${MINIO_API_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    networks: [data]
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, http://127.0.0.1:9000/minio/health/ready]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+
+  minio-init:
+    build:
+      context: ./infra/minio
+      target: client
+    restart: "no"
+    entrypoint: [sh, /config/init.sh]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Set MINIO_ROOT_PASSWORD in .env}
+      MINIO_APP_USER: ${MINIO_APP_USER:?Set MINIO_APP_USER in .env}
+      MINIO_APP_PASSWORD: ${MINIO_APP_PASSWORD:?Set MINIO_APP_PASSWORD in .env}
+      S3_BUCKET_DOCUMENTS: ${S3_BUCKET_DOCUMENTS:?Set S3_BUCKET_DOCUMENTS in .env}
+      S3_BUCKET_PAGES: ${S3_BUCKET_PAGES:?Set S3_BUCKET_PAGES in .env}
+      S3_BUCKET_EXPORTS: ${S3_BUCKET_EXPORTS:?Set S3_BUCKET_EXPORTS in .env}
+      S3_BUCKET_MODELS: ${S3_BUCKET_MODELS:?Set S3_BUCKET_MODELS in .env}
+    volumes:
+      - ./infra/minio/init.sh:/config/init.sh:ro
+      - ./infra/minio/policy.json.template:/config/policy.json.template:ro
+    networks: [data]
+    depends_on:
+      minio:
+        condition: service_healthy
+
+networks:
+  edge:
+  api:
+    internal: true
+  data:
+    internal: true
+  egress:
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:

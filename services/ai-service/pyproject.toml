@@ -1,0 +1,11 @@
+[project]
+name = "frameflow-ai-service"
+version = "0.0.0"
+description = "Empty AI service scaffold; no HTTP or gRPC application yet"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "fastapi==0.161.0",
+  "uvicorn==0.54.0",
+  "grpcio==1.84.1",
+  "protobuf==7.36.2",
+]

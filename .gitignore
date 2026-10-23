@@ -1,0 +1,81 @@
+# Environment and local credentials
+.env
+.env.*
+!.env.example
+!**/.env.example
+.secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+*.keystore
+infra/nginx/certs/*
+!infra/nginx/certs/.gitkeep
+
+# Node.js / pnpm / Next.js
+node_modules/
+.pnpm-store/
+.npm/
+.next/
+out/
+dist/
+next-env.d.ts
+*.tsbuildinfo
+.turbo/
+.cache/
+.eslintcache
+
+# Test results and coverage
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.playwright-cli/
+
+# Python environments, caches and build output
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyright/
+.hypothesis/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+/services/ai-service/build/
+
+# Runtime files, local datasets, models and backups
+.data/
+/data/
+/storage/
+/uploads/
+/backups/
+/artifacts/
+/models/
+/datasets/
+/tmp/
+/temp/
+
+# Logs and process files
+*.log
+*.pid
+*.pid.lock
+
+# OS and editor files
+.DS_Store
+._*
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+*~

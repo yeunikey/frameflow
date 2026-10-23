@@ -1,0 +1,20 @@
+{
+  "name": "frameflow",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.34.5",
+  "engines": {
+    "node": ">=24.15.0 <25",
+    "pnpm": ">=10.34.5 <11"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @frameflow/frontend dev",
+    "build": "pnpm -r --if-present run build",
+    "lint": "pnpm --filter @frameflow/frontend lint",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "compose:check": "docker compose config --quiet && docker compose -f compose.yaml -f compose.dev.yaml config --quiet && docker compose --profile scaffold config --quiet",
+    "dev:identity-service": "pnpm --filter @frameflow/identity-service start:dev",
+    "dev:document-service": "pnpm --filter @frameflow/document-service start:dev",
+    "dev:workspace-service": "pnpm --filter @frameflow/workspace-service start:dev"
+  }
+}
